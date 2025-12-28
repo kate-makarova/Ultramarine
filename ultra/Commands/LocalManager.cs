@@ -35,45 +35,60 @@ namespace UltramarineCli.Commands
                 AnsiConsole.MarkupLine("[yellow]Please start Docker Desktop and try again.[/]");
                 return;
             }
-
-            await AnsiConsole.Status().StartAsync("Starting local emulators...", async ctx =>
+            bool running = true;
+            while (running)
             {
-                // 1. Start Azurite (Queues)
-                ctx.Status("Launching Azurite (Queue Emulator)...");
-                await EnsureContainerRunning("ultra-azurite", "mcr.microsoft.com/azure-storage/azurite", "-p 10000:10000 -p 10001:10001 -p 10002:10002");
-
-                if (!localState.QueueProvisioned)
-                {
-                    ctx.Status("[yellow]Provisioning Queue...[/]");
-                    await InitializeQueueResources(); // Create Queues, etc.
-                    localState.QueueProvisioned = true;
-                }
-
-                // 2. Start CosmosDB Emulator
-                ctx.Status("Launching CosmosDB Emulator...");
-                //await Cli.Wrap("docker")
-                //    .WithArguments("run -d -p 8081:8081 -p 10250-10255:10250-10255 mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator")
-                //    .WithValidation(CommandResultValidation.None)
-                //    .ExecuteAsync();
-
-                await EnsureContainerRunning("cosmos-db", "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", "-p 8081:8081 -p 10250-10255:10250-10255");
-
-                if (!localState.DatabaseProvisioned)
-                {
-                    ctx.Status("[yellow]Provisioning Database...[/]");
-                    await InitializeDatabaseResources(); // Create DB, Containers, etc.
-
-                    localState.DatabaseProvisioned = true;
-                }
-
                 var routerManager = new RouterManager(projectPath);
-                ctx.Status("Starting local API router...");
+
+                await AnsiConsole.Status().StartAsync("Starting local emulators...", async ctx =>
+                {
+                    // 1. Start Azurite (Queues)
+                    ctx.Status("Launching Azurite (Queue Emulator)...");
+                    await EnsureContainerRunning("ultra-azurite", "mcr.microsoft.com/azure-storage/azurite", "-p 10000:10000 -p 10001:10001 -p 10002:10002");
+
+                    if (!localState.QueueProvisioned)
+                    {
+                        ctx.Status("[yellow]Provisioning Queue...[/]");
+                        await InitializeQueueResources(); // Create Queues, etc.
+                        localState.QueueProvisioned = true;
+                    }
+
+                    // 2. Start CosmosDB Emulator
+                    ctx.Status("Launching CosmosDB Emulator...");
+                    await EnsureContainerRunning("cosmos-db", "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", "-p 8081:8081 -p 10250-10255:10250-10255");
+
+                    if (!localState.DatabaseProvisioned)
+                    {
+                        ctx.Status("[yellow]Provisioning Database...[/]");
+                        await InitializeDatabaseResources(); // Create DB, Containers, etc.
+
+                        localState.DatabaseProvisioned = true;
+                    }
+
+                    routerManager.SetUpRouter();
+                    ctx.Status("Starting local API router...");
+                });
+
                 await routerManager.StartLocalRouterAsync();
+
                 AnsiConsole.MarkupLine("[green]✔[/] Local environment is [bold]UP[/].");
+                AnsiConsole.MarkupLine("[grey]Press [white]Q[/] to stop environment and return to menu...[/]");
                 AnsiConsole.MarkupLine("[bold blue]Ultramarine Gateway ready on http://localhost:5000[/]");
                 AnsiConsole.MarkupLine("[grey]Azurite: http://localhost:10001[/]");
                 AnsiConsole.MarkupLine("[grey]CosmosDB: https://localhost:8081/_explorer/index.html[/]");
-            });
+
+                var key = Console.ReadKey(true);
+                if (key.Key == ConsoleKey.Q)
+                {
+                    await AnsiConsole.Status().StartAsync("Shutting down...", async ctx =>
+                    {
+                        await routerManager.StopAsync();
+                        // (Optional) Stop containers if you want to be clean
+                    });
+
+                    running = false; // Breaks the loop and returns to the Main Menu
+                }
+            }
         }
 
         public async Task<bool> IsDockerRunningAsync()

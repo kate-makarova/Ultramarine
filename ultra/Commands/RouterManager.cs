@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
-using System.IO;
 using UltramarineCli.Models;
 using Yarp.ReverseProxy.Configuration;
 
@@ -10,10 +9,12 @@ namespace UltramarineCli.Commands
 {
     internal class RouterManager
     {
+        private CancellationTokenSource? _cts;
         string routerPath;
         string projectPath;
         RouterConfig routerConfig;
         private InMemoryConfigProvider _configProvider;
+        private WebApplication? app;
         public RouterManager(string path)
         {
             projectPath = path;
@@ -63,7 +64,7 @@ namespace UltramarineCli.Commands
             return (routes, clusters);
         }
 
-        public async Task StartLocalRouterAsync()
+        public void BuildApp()
         {
             var (routes, clusters) = TranslateRouterToYarp();
 
@@ -74,7 +75,7 @@ namespace UltramarineCli.Commands
             // Register YARP with our translated config
             builder.Services.AddReverseProxy();
 
-            var app = builder.Build();
+            this.app = builder.Build();
 
             // The "Beautiful" Part: Local Privilege Check Middleware
             app.UseRouting();
@@ -86,6 +87,10 @@ namespace UltramarineCli.Commands
                     {
                         var proxyFeature = context.GetReverseProxyFeature();
                         var routeMetadata = proxyFeature.Route.Config.Metadata;
+                        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+                        bool authorized = true;
+                        string authError = "";
 
                         if (routeMetadata.TryGetValue("AuthRequired", out var authReq) && authReq == "True")
                         {
@@ -95,18 +100,60 @@ namespace UltramarineCli.Commands
 
                             if (!requiredPrivs.All(p => userPrivs.Contains(p)))
                             {
+                                authorized = false;
+                                authError = $"Missing: {string.Join(", ", requiredPrivs)}";
+                            }
+
+                            if (!authorized)
+                            {
                                 context.Response.StatusCode = 403;
-                                await context.Response.WriteAsync($"Ultramarine Security: Missing {string.Join(", ", requiredPrivs)}");
-                                return; // Block the request
+                                LogRequest(context, stopwatch.ElapsedMilliseconds, "FORBIDDEN", "red", authError);
+                                await context.Response.WriteAsync($"Ultramarine Security: {authError}");
+                                return;
                             }
                         }
                         await next(); // Proceed to the Function
+                        stopwatch.Stop();
+
+                        var color = context.Response.StatusCode >= 400 ? "yellow" : "green";
+                        LogRequest(context, stopwatch.ElapsedMilliseconds, "OK", color);
                     });
                 });
             });
+        }
 
-            await app.StartAsync();
+        public void SetUpRouter()
+        {
+            BuildApp();
             SetupRouterWatcher();
+        }
+
+        public async Task StartLocalRouterAsync()
+        {
+            _cts = new CancellationTokenSource();
+            await app.StartAsync(_cts.Token);
+        }
+
+        public async Task StopAsync()
+        {
+            if (_cts != null)
+            {
+                await _cts.CancelAsync();
+                await app.StopAsync();
+            }
+        }
+
+        private void LogRequest(HttpContext context, long ms, string status, string color, string detail = "")
+        {
+            var method = context.Request.Method.PadRight(6);
+            var path = context.Request.Path;
+            var statusCode = context.Response.StatusCode;
+
+            AnsiConsole.MarkupLine(
+                $"[{color}]LOG[/] {DateTime.Now:HH:mm:ss} | " +
+                $"[white]{method}[/] [bold]{path}[/] | " +
+                $"[{color}]{statusCode} {status}[/] [grey]{ms}ms[/] " +
+                $"[italic red]{detail}[/]");
         }
 
         private void SetupRouterWatcher()

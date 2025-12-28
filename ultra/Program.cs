@@ -3,6 +3,7 @@ using CliWrap.Buffered;
 using CliWrap.EventStream;
 using Spectre.Console;
 using UltramarineCli.Commands;
+using UltramarineCli.Models;
 
 AnsiConsole.Write(new FigletText("Ultramarine").Color(Color.Blue));
 AnsiConsole.MarkupLine("[bold blue]Ultramarine CLI v1.0.0[/] - Let's deploy your backend.");
@@ -62,10 +63,10 @@ if (!File.Exists(configPath))
 
 AnsiConsole.MarkupLine("[green]✔[/] Ultramarine project detected.");
 
-var c = true;
+CliState c = CliState.SHOW_TABLE_AND_MENU;
 // --- 3. MAIN MENU LOOP ---
-while (c) {
-    ConfigManager configManager = new ConfigManager(absoluteTargetDir);
-    c = await configManager.CheckConfigAsync();
+ConfigManager configManager = new ConfigManager(absoluteTargetDir);
+while (c != CliState.EXIT) { 
+    c = await configManager.CheckConfigAsync(c);
 }
 return 0;
