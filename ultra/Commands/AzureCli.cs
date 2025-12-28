@@ -1,11 +1,8 @@
 ﻿using CliWrap;
 using CliWrap.Buffered;
 using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace ultra.Commands
+namespace UltramarineCli.Commands
 {
     public class AzureCli
     {

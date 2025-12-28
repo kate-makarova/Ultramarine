@@ -1,10 +1,11 @@
 ﻿using CliWrap;
 using CliWrap.Buffered;
 using Spectre.Console;
+using UltramarineCli.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace ultra.Commands
+namespace UltramarineCli.Commands
 {
     internal class DatabaseManager
     {
@@ -59,13 +60,13 @@ namespace ultra.Commands
     .Build();
             // 1. Load the existing YAML
             var yamlContent = File.ReadAllText(dbConfigPath);
-            var config = deserializer.Deserialize<dynamic>(yamlContent);
+            var config = deserializer.Deserialize<DatabaseConfig>(yamlContent);
 
-            string rg = config["production"]["resourceGroup"];
-            string name = config["projectSettings"]["accountName"];
-            string pk = config["projectSettings"]["partitionKey"];
-            string db = config["projectSettings"]["databaseName"];
-            string cn = config["production"]["containerName"];
+            string rg = config.Production.ResourceGroup;
+            string name = config.ProjectSettings.AccountName;
+            string pk = config.ProjectSettings.PartitionKey;
+            string db = config.ProjectSettings.DatabaseName;
+            string cn = config.Production.ContainerName;
 
             var az = AzureCli.GetAzCommand();
 
@@ -100,7 +101,7 @@ namespace ultra.Commands
                     .ExecuteBufferedAsync();
 
                 // 6. UPDATE THE YAML (The "Sync" step)
-                config["production"].ConnectionString = result.StandardOutput.Trim();
+                config.Production.ConnectionString = result.StandardOutput.Trim();
                 var updatedYaml = new SerializerBuilder().Build().Serialize(config);
                 File.WriteAllText("config/database.yaml", updatedYaml);
             });

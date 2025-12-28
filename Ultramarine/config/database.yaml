@@ -1,5 +1,5 @@
 projectSettings:
-  accountName: db
+  accountName: mydb
   partitionKey: /userId
   databaseName: UltramarineDB
 local:
@@ -8,4 +8,4 @@ local:
 production:
   connectionString: ''
   containerName: items-prod
-  resourceGroup: db-rg
+  resourceGroup: mydb-rg

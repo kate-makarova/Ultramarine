@@ -1,9 +1,9 @@
 ﻿using Spectre.Console;
-using YamlDotNet.Core;
+using UltramarineCli.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace ultra.Commands
+namespace UltramarineCli.Commands
 {
     internal class ConfigManager
     {
@@ -23,7 +23,7 @@ namespace ultra.Commands
             string queuePath = Path.Combine(path, "config", "queue.yaml");
 
             // Status variables
-            var dbConfig = File.Exists(dbPath) ? deserializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(dbPath)) : null;
+            var dbConfig = File.Exists(dbPath) ? deserializer.Deserialize<DatabaseConfig>(File.ReadAllText(dbPath)) : null;
             var queueConfig = File.Exists(queuePath) ? deserializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(queuePath)) : null;
 
             // --- 2. DISPLAY CURRENT STATUS ---
@@ -34,7 +34,7 @@ namespace ultra.Commands
 
             // Database Row
             if (dbConfig != null)
-                table.AddRow("Database", "[green]Configured[/]", $"Name: {dbConfig.GetValueOrDefault("Name", "N/A")}");
+                table.AddRow("Database", "[green]Configured[/]", $"Name: {dbConfig.ProjectSettings.DatabaseName}");
             else
                 table.AddRow("Database", "[red]Not Configured[/]", "-");
 

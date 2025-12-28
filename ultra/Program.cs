@@ -1,9 +1,8 @@
-﻿// See// --- 1. WELCOME & SYSTEM CHECK ---
-using CliWrap;
+﻿using CliWrap;
 using CliWrap.Buffered;
 using CliWrap.EventStream;
 using Spectre.Console;
-using ultra.Commands;
+using UltramarineCli.Commands;
 
 AnsiConsole.Write(new FigletText("Ultramarine").Color(Color.Blue));
 AnsiConsole.MarkupLine("[bold blue]Ultramarine CLI v1.0.0[/] - Let's deploy your backend.");
