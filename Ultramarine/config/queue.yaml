@@ -1,0 +1,11 @@
+projectSettings:
+  queueName: tasks
+  maxDeliveryAttempts: 5
+local:
+  connectionString: UseDevelopmentStorage=true
+  containerName: tasks
+  resourceGroup: ''
+production:
+  connectionString: ''
+  containerName: tasks
+  resourceGroup: ultramarine-resources

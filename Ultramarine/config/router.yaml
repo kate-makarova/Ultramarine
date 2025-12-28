@@ -1,0 +1,26 @@
+routes:
+  - path: "/orders"
+    service: "order-service"
+    methods: [ "GET", "POST" ]
+    auth:
+      required: true
+      privileges: [ "orders.read", "orders.write" ]
+
+  - path: "/catalog"
+    service: "catalog-service"
+    methods: [ "GET" ]
+    auth:
+      required: false # Public API
+
+  - path: "/admin/purge"
+    service: "maintenance-service"
+    methods: [ "DELETE" ]
+    auth:
+      required: true
+      privileges: [ "admin.super" ]
+  - path: "/admin/purge3"
+    service: "maintenance-service"
+    methods: [ "DELETE" ]
+    auth:
+      required: true
+      privileges: [ "admin.super" ]

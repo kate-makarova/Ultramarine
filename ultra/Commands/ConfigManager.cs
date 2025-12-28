@@ -24,7 +24,7 @@ namespace UltramarineCli.Commands
 
             // Status variables
             var dbConfig = File.Exists(dbPath) ? deserializer.Deserialize<DatabaseConfig>(File.ReadAllText(dbPath)) : null;
-            var queueConfig = File.Exists(queuePath) ? deserializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(queuePath)) : null;
+            var queueConfig = File.Exists(queuePath) ? deserializer.Deserialize<QueueConfig>(File.ReadAllText(queuePath)) : null;
 
             // --- 2. DISPLAY CURRENT STATUS ---
             var table = new Table().Border(TableBorder.Rounded);
@@ -40,7 +40,7 @@ namespace UltramarineCli.Commands
 
             // Queue Row
             if (queueConfig != null)
-                table.AddRow("Queue", "[green]Configured[/]", $"Name: {queueConfig.GetValueOrDefault("Name", "N/A")}");
+                table.AddRow("Queue", "[green]Configured[/]", $"Name: {queueConfig.ProjectSettings.QueueName}");
             else
                 table.AddRow("Queue", "[red]Not Configured[/]", "-");
 
@@ -52,6 +52,8 @@ namespace UltramarineCli.Commands
                     .Title("\n[yellow]What would you like to do?[/]")
                     .PageSize(10)
                     .AddChoices(new[] {
+            "Start local environment",
+            "Configure Router",
             "Configure Database",
             "Configure Queue",
             "Refresh Status",
@@ -61,12 +63,19 @@ namespace UltramarineCli.Commands
             // --- 4. ACTION HANDLER ---
             switch (choice)
             {
+                case "Start local environment":
+                    var localEnvManager = new LocalManager(path);
+                    await localEnvManager.StartLocalEnvironment();
+                    return true;
+                    case "Configure Router":
+                    return true;
                 case "Configure Database":
                     var dbManager = new DatabaseManager(path);
                     await dbManager.ConfigureDatabase();
                     return true;
                 case "Configure Queue":
-                    AnsiConsole.MarkupLine("[blue]Queue onfiguration logic coming soon...[/]");
+                    var queueManager = new QueueManager(path);
+                    await queueManager.ConfigureQueue();
                     return true;
                 case "Exit":
                     return false;
