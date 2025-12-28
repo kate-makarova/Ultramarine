@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "ultramarine-cli": {
+      "version": "1.0.0",
+      "commands": [
+        "ultramarine-cli"
+      ],
+      "rollForward": false
+    }
+  }
+}
