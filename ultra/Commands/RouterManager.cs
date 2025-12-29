@@ -112,6 +112,20 @@ namespace UltramarineCli.Commands
                                 return;
                             }
                         }
+
+                        var result = await HandleLocalRequestAsync(context);
+                        if (result != null)
+                        {
+                            stopwatch.Stop();
+                            context.Response.StatusCode = 200;
+
+                            // Log it through our beautiful logger
+                            LogRequest(context, stopwatch.ElapsedMilliseconds, "OK (LOCAL)", "cyan");
+
+                            await context.Response.WriteAsJsonAsync(result);
+                            return;
+                        }
+
                         await next(); // Proceed to the Function
                         stopwatch.Stop();
 
@@ -120,6 +134,33 @@ namespace UltramarineCli.Commands
                     });
                 });
             });
+        }
+
+        public async Task<object?> HandleLocalRequestAsync(HttpContext context)
+        {
+            // Extract the class name from the URL path (e.g., /api/ObjectList -> ObjectList)
+            var path = context.Request.Path.Value?.Trim('/');
+            if (string.IsNullOrEmpty(path)) return null;
+
+            // Convention: Take the last segment of the path as the Class Name
+            var className = path.Split('/').Last();
+
+            // 1. Scan the project for the class inheriting from EndpointFunction
+            var endpointType = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .FirstOrDefault(t =>
+                    string.Equals(t.Name, className, StringComparison.OrdinalIgnoreCase) &&
+                    typeof(EndpointFunction).IsAssignableFrom(t) &&
+                    !t.IsAbstract);
+
+            if (endpointType == null) return null;
+
+            // 2. Instantiate and Inject
+            var instance = (EndpointFunction)Activator.CreateInstance(endpointType)!;
+            instance.Request = context.Request;
+            // We could also inject Logger, Database, etc. here
+
+            return await instance.HandleAsync();
         }
 
         public void SetUpRouter()

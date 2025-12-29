@@ -6,8 +6,8 @@ routes:
       required: true
       privileges: [ "orders.read", "orders.write" ]
 
-  - path: "/catalog"
-    service: "catalog-service"
+  - path: "/api/test"
+    service: "Test"
     methods: [ "GET" ]
     auth:
       required: false # Public API

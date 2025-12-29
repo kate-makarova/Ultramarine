@@ -5,12 +5,15 @@ using Microsoft.Extensions.Hosting;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.ConfigureFunctionsWebApplication(app => {
-    AppContext.UseMiddleware<Ultramarine.core.Mddleware.AuthMiddleware>();
-    });
-
 builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
+
+if (builder.Environment.IsDevelopment())
+{
+    // You can add local-only services here if needed
+    // The Dispatcher is automatically found by the host because it has the [Function] attribute
+    Console.WriteLine(">>> Ultramarine: Development Mode - Dispatcher Active");
+}
 
 builder.Build().Run();
